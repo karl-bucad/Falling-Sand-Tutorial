@@ -20,7 +20,7 @@ class Particle {
      * @returns {boolean} Should the particle swap
      */
     swap(other) {
-        return other.type == "water";
+        return false;
     }
 
     /**
@@ -45,13 +45,13 @@ export class Sand extends Particle {
     }
 
     swap(other) {
-        // TODO make sand fall under the water
+        return other.type == "water";
     }
 
     update(row, col) {
         let newRow = row + 1;
 
-        if (!moveParticle(row, col, newRow, col)){
+        if (!moveParticle(row, col, newRow, col, this.swap)){
             if (!moveParticle(row, col, newRow, col + 1, this.swap)){
                 moveParticle(row, col, newRow, col - 1, this.swap);
             }
@@ -74,7 +74,14 @@ export function checkParticleType(value) {
         return new Stone();
     } else if (value == "Dirt") {
         return new Dirt();
+    } else if (value == "Fire") {
+        return new Fire();
+    } else if (value == "Wood") {
+        return new Wood();
+    } else if (value == "Steam") {
+        return new Steam();
     }
+
     return null;
 }
 
@@ -126,5 +133,111 @@ export class Grass extends Sand {
         super();
         this.color = "green";
         this.type = "grass";
+    }
+}
+
+export class Fire extends Particle {
+    constructor() {
+        super();
+        this.color = "orange";
+        this.type = "fire";
+
+        this.duration = 0;
+        this.maxDuration = getRandomInt(40, 100);
+    }
+
+    update(row, col) {
+        this.duration++;
+
+        if (this.duration >= this.maxDuration) {
+            setParticle(row, col, null);
+            return;
+        }
+
+        const neighbors = [
+            [row + 1, col],
+            [row - 1, col],
+            [row, col + 1],
+            [row, col - 1]
+        ];
+
+        for (const [r, c] of neighbors) {
+            const particle = getParticle(r, c);
+
+            if (!particle) {
+                continue;
+            }
+
+            if (particle.type == "wood") {
+                if (getRandomInt(0, 9) === 0) {
+                    setParticle(r, c, new Fire());
+                }
+            }
+
+            if (particle.type === "water") {
+                if (getRandomInt(0, 19) === 0) {
+                    setParticle(r, c, new Steam());
+                    setParticle(row, col, null);
+                    return;
+                }
+            }
+        }
+
+        if (!moveParticle(row, col, row - 1, col)) {
+            if (!moveParticle(row, col, row - 1, col + 1)) {
+                moveParticle(row, col, row - 1, col - 1);
+            }
+        }
+    }
+}
+
+export class Wood extends Particle {
+    constructor() {
+        super();
+        this.color = "#8B4513";
+        this.type = "wood";
+    }
+
+    update(row, col) {
+    }
+}
+
+export class Steam extends Particle {
+    constructor() {
+        super();
+        this.color = "lightgray";
+        this.type = "steam";
+    }
+
+    update(row, col) {
+        if (getRandomInt(0, 999) === 0) {
+            setParticle(row, col, null);
+            return;
+        }
+
+        if (row === 0) {
+            if (getRandomInt(0, 99) === 0) {
+                setParticle(row, col, new Water());
+                return;
+            }
+        }
+
+        if (moveParticle(row, col, row - 1, col)) {
+            return;
+        }
+
+        if (getRandomInt(0, 1) === 0) {
+            if (moveParticle(row, col, row - 1, col + 1)) {
+                return;
+            }
+
+            moveParticle(row, col, row - 1, col - 1);
+        } else {
+            if (moveParticle(row, col, row - 1, col - 1)) {
+                return;
+            }
+
+            moveParticle(row, col, row - 1, col + 1);
+        }
     }
 }
